@@ -12,10 +12,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Usa CORS e JSON parser
-app.use(cors());
-app.use(express.json());
-
 // Funzione per creare le tabelle
 const createTables = async () => {
   const queryArticoli = `
@@ -26,7 +22,7 @@ const createTables = async () => {
       codice_barre VARCHAR(255) UNIQUE NOT NULL
     );
   `;
-  
+
   const queryOperazioni = `
     CREATE TABLE IF NOT EXISTS operazioni (
       id SERIAL PRIMARY KEY,
@@ -46,8 +42,12 @@ const createTables = async () => {
   }
 };
 
-// Chiamata alla funzione di creazione tabelle
+// Avvio della funzione di creazione delle tabelle al primo avvio
 createTables();
+
+// Usa CORS e JSON parser
+app.use(cors());
+app.use(express.json());
 
 // Rotte API
 
@@ -57,7 +57,7 @@ app.get("/articoli", async (req, res) => {
     const result = await pool.query("SELECT * FROM articoli");
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Errore nel recupero degli articoli" });
   }
 });
 
@@ -76,7 +76,7 @@ app.post("/articoli", async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Errore nell'aggiunta dell'articolo" });
   }
 });
 
@@ -94,12 +94,14 @@ app.put("/articoli/:id", async (req, res) => {
       "UPDATE articoli SET quantita = quantita + $1 WHERE id = $2 RETURNING *",
       [quantita, id]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Articolo non trovato" });
     }
+
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Errore nell'aggiornamento dell'articolo" });
   }
 });
 
@@ -120,6 +122,11 @@ app.post("/operazioni", async (req, res) => {
     const articolo = await pool.query("SELECT * FROM articoli WHERE id = $1", [articolo_id]);
     if (articolo.rows.length === 0) {
       return res.status(404).json({ error: "Articolo non trovato" });
+    }
+
+    // Verifica che ci sia abbastanza quantità per lo scarico
+    if (tipo_operazione === "scarico" && articolo.rows[0].quantita < quantita) {
+      return res.status(400).json({ error: "Quantità insufficiente per lo scarico" });
     }
 
     // Aggiorna la quantità dell'articolo
@@ -149,11 +156,21 @@ app.get("/operazioni", async (req, res) => {
     const result = await pool.query("SELECT * FROM operazioni");
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Errore nel recupero delle operazioni" });
   }
 });
 
-// Avvia il server
+// 6. Test connessione DB
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Errore nella connessione al DB" });
+  }
+});
+
+// Avvio del server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server in esecuzione sulla porta ${PORT}`);
 });
