@@ -10,7 +10,11 @@ const PORT = process.env.PORT || 8080;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }, // Necessario per Railway
+ // Imposta il fuso orario su Europe/Rome
+ application_name: 'gestionale-magazzino',
+ timezone: 'Europe/Rome', // Questo forza il fuso orario corretto
 });
+
 
 app.use(cors());
 app.use(express.json());
@@ -33,3 +37,4 @@ app.get("/test-db", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
