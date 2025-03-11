@@ -1,28 +1,22 @@
 const pool = require("../db");
 
 const createTable = async () => {
-  await pool.query(`
+  const query = `
     CREATE TABLE IF NOT EXISTS operazioni (
       id SERIAL PRIMARY KEY,
-      articolo_id INTEGER REFERENCES articoli(id) ON DELETE CASCADE,
-      tipo_operazione VARCHAR(10) CHECK (tipo_operazione IN ('carico', 'scarico')) NOT NULL,
-      quantita INTEGER NOT NULL,
+      articolo_id INT REFERENCES articoli(id) ON DELETE CASCADE,
+      tipo_operazione VARCHAR(10) CHECK (tipo_operazione IN ('carico', 'scarico')),
+      quantita INT NOT NULL,
       data_operazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    );
+  `;
+  await pool.query(query);
 };
 
-createTable().catch(console.error);
+createTable();
 
-const getAllOperazioni = async () => {
-  return await pool.query("SELECT * FROM operazioni");
+module.exports = {
+  getAll: () => pool.query("SELECT * FROM operazioni"),
+  create: (articolo_id, tipo_operazione, quantita) =>
+    pool.query("INSERT INTO operazioni (articolo_id, tipo_operazione, quantita) VALUES ($1, $2, $3) RETURNING *", [articolo_id, tipo_operazione, quantita]),
 };
-
-const addOperazione = async (articolo_id, tipo_operazione, quantita) => {
-  return await pool.query(
-    "INSERT INTO operazioni (articolo_id, tipo_operazione, quantita) VALUES ($1, $2, $3) RETURNING *",
-    [articolo_id, tipo_operazione, quantita]
-  );
-};
-
-module.exports = { getAllOperazioni, addOperazione };

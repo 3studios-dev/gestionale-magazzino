@@ -1,8 +1,16 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const operazioneController = require('../controllers/operazioneController');
+const Operazione = require("../models/operazioneModel");
 
-router.post('/', operazioneController.addOperazione);
-router.get('/', operazioneController.getOperazioni);
+router.get("/", async (req, res) => {
+  const result = await Operazione.getAll();
+  res.json(result.rows);
+});
+
+router.post("/", async (req, res) => {
+  const { articolo_id, tipo_operazione, quantita } = req.body;
+  const result = await Operazione.create(articolo_id, tipo_operazione, quantita);
+  res.json(result.rows[0]);
+});
 
 module.exports = router;
